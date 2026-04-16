@@ -116,6 +116,7 @@ type clientConfigQUIC struct {
 	MaxIdleTimeout              time.Duration            `mapstructure:"maxIdleTimeout"`
 	KeepAlivePeriod             time.Duration            `mapstructure:"keepAlivePeriod"`
 	DisablePathMTUDiscovery     bool                     `mapstructure:"disablePathMTUDiscovery"`
+	InitialPacketSize           uint16                   `mapstructure:"initialPacketSize"`
 	Sockopts                    clientConfigQUICSockopts `mapstructure:"sockopts"`
 }
 
@@ -355,6 +356,9 @@ func (c *clientConfig) fillTLSConfig(hyConfig *client.Config) error {
 }
 
 func (c *clientConfig) fillQUICConfig(hyConfig *client.Config) error {
+	if c.QUIC.InitialPacketSize != 0 && c.QUIC.InitialPacketSize < 1200 {
+		return configError{Field: "quic.initialPacketSize", Err: errors.New("must be at least 1200")}
+	}
 	hyConfig.QUICConfig = client.QUICConfig{
 		InitialStreamReceiveWindow:     c.QUIC.InitStreamReceiveWindow,
 		MaxStreamReceiveWindow:         c.QUIC.MaxStreamReceiveWindow,
@@ -363,6 +367,7 @@ func (c *clientConfig) fillQUICConfig(hyConfig *client.Config) error {
 		MaxIdleTimeout:                 c.QUIC.MaxIdleTimeout,
 		KeepAlivePeriod:                c.QUIC.KeepAlivePeriod,
 		DisablePathMTUDiscovery:        c.QUIC.DisablePathMTUDiscovery,
+		InitialPacketSize:              c.QUIC.InitialPacketSize,
 	}
 	return nil
 }

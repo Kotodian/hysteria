@@ -116,6 +116,31 @@ func TestNewBbrSenderAppliesProfiles(t *testing.T) {
 	}
 }
 
+func TestSetMaxDatagramSizeAllowsDecrease(t *testing.T) {
+	const oldMaxDatagramSize = congestion.ByteCount(1400)
+	const newMaxDatagramSize = congestion.ByteCount(1200)
+	const initialCongestionWindowPackets = congestion.ByteCount(20)
+	const maxCongestionWindowPackets = congestion.ByteCount(80)
+
+	b := newBbrSender(
+		DefaultClock{},
+		oldMaxDatagramSize,
+		initialCongestionWindowPackets*oldMaxDatagramSize,
+		maxCongestionWindowPackets*oldMaxDatagramSize,
+		ProfileStandard,
+	)
+	b.congestionWindow = b.initialCongestionWindow
+
+	// Must not panic when decreasing max datagram size.
+	b.SetMaxDatagramSize(newMaxDatagramSize)
+
+	require.Equal(t, newMaxDatagramSize, b.maxDatagramSize)
+	require.Equal(t, initialCongestionWindowPackets*newMaxDatagramSize, b.initialCongestionWindow)
+	require.Equal(t, maxCongestionWindowPackets*newMaxDatagramSize, b.maxCongestionWindow)
+	require.Equal(t, minCongestionWindowPackets*newMaxDatagramSize, b.minCongestionWindow)
+	require.Equal(t, initialCongestionWindowPackets*newMaxDatagramSize, b.congestionWindow)
+}
+
 func TestParseProfile(t *testing.T) {
 	profile, err := ParseProfile("")
 	require.NoError(t, err)

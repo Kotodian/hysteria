@@ -128,7 +128,8 @@ type QUICConfig struct {
 	MaxConnectionReceiveWindow     uint64
 	MaxIdleTimeout                 time.Duration
 	MaxIncomingStreams             int64
-	DisablePathMTUDiscovery        bool // The server may still override this to true on unsupported platforms.
+	DisablePathMTUDiscovery        bool   // The server may still override this to true on unsupported platforms.
+	InitialPacketSize              uint16 // Initial (and minimum) packet size for QUIC datagrams. 0 = use default (1280).
 }
 
 type CongestionConfig struct {

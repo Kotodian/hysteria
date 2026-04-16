@@ -138,6 +138,7 @@ type serverConfigQUIC struct {
 	MaxIdleTimeout              time.Duration `mapstructure:"maxIdleTimeout"`
 	MaxIncomingStreams          int64         `mapstructure:"maxIncomingStreams"`
 	DisablePathMTUDiscovery     bool          `mapstructure:"disablePathMTUDiscovery"`
+	InitialPacketSize           uint16        `mapstructure:"initialPacketSize"`
 }
 
 type serverConfigBandwidth struct {
@@ -570,6 +571,9 @@ func genZeroSSLEAB(email string) (*acme.EAB, error) {
 }
 
 func (c *serverConfig) fillQUICConfig(hyConfig *server.Config) error {
+	if c.QUIC.InitialPacketSize != 0 && c.QUIC.InitialPacketSize < 1200 {
+		return configError{Field: "quic.initialPacketSize", Err: errors.New("must be at least 1200")}
+	}
 	hyConfig.QUICConfig = server.QUICConfig{
 		InitialStreamReceiveWindow:     c.QUIC.InitStreamReceiveWindow,
 		MaxStreamReceiveWindow:         c.QUIC.MaxStreamReceiveWindow,
@@ -578,6 +582,7 @@ func (c *serverConfig) fillQUICConfig(hyConfig *server.Config) error {
 		MaxIdleTimeout:                 c.QUIC.MaxIdleTimeout,
 		MaxIncomingStreams:             c.QUIC.MaxIncomingStreams,
 		DisablePathMTUDiscovery:        c.QUIC.DisablePathMTUDiscovery,
+		InitialPacketSize:              c.QUIC.InitialPacketSize,
 	}
 	return nil
 }

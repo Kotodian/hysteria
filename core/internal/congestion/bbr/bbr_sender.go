@@ -490,9 +490,10 @@ func (b *bbrSender) SetMaxDatagramSize(s congestion.ByteCount) {
 	if b.debug {
 		b.debugPrint("Max Datagram Size: %d", s)
 	}
-	if s < b.maxDatagramSize {
-		panic(fmt.Sprintf("congestion BUG: decreased max datagram size from %d to %d", b.maxDatagramSize, s))
-	}
+	// Previously panicked when s < maxDatagramSize. Allow decreasing max
+	// datagram size when InitialPacketSize is configured smaller than the
+	// default (e.g. for constrained MTU paths). rescalePacketSizedWindows
+	// below handles both increase and decrease correctly.
 	oldMinCongestionWindow := b.minCongestionWindow
 	oldInitialCongestionWindow := b.initialCongestionWindow
 	b.rescalePacketSizedWindows(s)

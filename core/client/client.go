@@ -84,6 +84,7 @@ func (c *clientImpl) connect() (*HandshakeInfo, error) {
 		MaxIdleTimeout:                 c.config.QUICConfig.MaxIdleTimeout,
 		KeepAlivePeriod:                c.config.QUICConfig.KeepAlivePeriod,
 		DisablePathMTUDiscovery:        c.config.QUICConfig.DisablePathMTUDiscovery,
+		InitialPacketSize:              c.config.QUICConfig.InitialPacketSize,
 		EnableDatagrams:                true,
 		MaxDatagramFrameSize:           protocol.MaxDatagramFrameSize,
 		DisablePathManager:             true,

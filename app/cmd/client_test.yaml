@@ -28,6 +28,7 @@ quic:
   maxIdleTimeout: 10s
   keepAlivePeriod: 4s
   disablePathMTUDiscovery: true
+  initialPacketSize: 1200
   sockopts:
     bindInterface: eth0
     fwmark: 1234
