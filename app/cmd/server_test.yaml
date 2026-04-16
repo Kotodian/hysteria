@@ -42,6 +42,7 @@ quic:
   maxIdleTimeout: 999s
   maxIncomingStreams: 256
   disablePathMTUDiscovery: true
+  initialPacketSize: 1200
 
 congestion:
   type: reno

@@ -138,6 +138,7 @@ type serverConfigQUIC struct {
 	MaxIdleTimeout              time.Duration `mapstructure:"maxIdleTimeout"`
 	MaxIncomingStreams          int64         `mapstructure:"maxIncomingStreams"`
 	DisablePathMTUDiscovery     bool          `mapstructure:"disablePathMTUDiscovery"`
+	InitialPacketSize           uint16        `mapstructure:"initialPacketSize"`
 }
 
 type serverConfigBandwidth struct {
@@ -578,6 +579,7 @@ func (c *serverConfig) fillQUICConfig(hyConfig *server.Config) error {
 		MaxIdleTimeout:                 c.QUIC.MaxIdleTimeout,
 		MaxIncomingStreams:             c.QUIC.MaxIncomingStreams,
 		DisablePathMTUDiscovery:        c.QUIC.DisablePathMTUDiscovery,
+		InitialPacketSize:              c.QUIC.InitialPacketSize,
 	}
 	return nil
 }

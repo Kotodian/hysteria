@@ -69,6 +69,7 @@ func TestServerConfig(t *testing.T) {
 			MaxIdleTimeout:              999 * time.Second,
 			MaxIncomingStreams:          256,
 			DisablePathMTUDiscovery:     true,
+			InitialPacketSize:           1200,
 		},
 		Congestion: serverConfigCongestion{
 			Type:       "reno",
