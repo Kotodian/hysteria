@@ -116,6 +116,7 @@ type clientConfigQUIC struct {
 	MaxIdleTimeout              time.Duration            `mapstructure:"maxIdleTimeout"`
 	KeepAlivePeriod             time.Duration            `mapstructure:"keepAlivePeriod"`
 	DisablePathMTUDiscovery     bool                     `mapstructure:"disablePathMTUDiscovery"`
+	InitialPacketSize           uint16                   `mapstructure:"initialPacketSize"`
 	Sockopts                    clientConfigQUICSockopts `mapstructure:"sockopts"`
 }
 
@@ -363,6 +364,7 @@ func (c *clientConfig) fillQUICConfig(hyConfig *client.Config) error {
 		MaxIdleTimeout:                 c.QUIC.MaxIdleTimeout,
 		KeepAlivePeriod:                c.QUIC.KeepAlivePeriod,
 		DisablePathMTUDiscovery:        c.QUIC.DisablePathMTUDiscovery,
+		InitialPacketSize:              c.QUIC.InitialPacketSize,
 	}
 	return nil
 }
