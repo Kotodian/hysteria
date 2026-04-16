@@ -56,6 +56,7 @@ func NewServer(config *Config) (Server, error) {
 		MaxIdleTimeout:                 config.QUICConfig.MaxIdleTimeout,
 		MaxIncomingStreams:             config.QUICConfig.MaxIncomingStreams,
 		DisablePathMTUDiscovery:        config.QUICConfig.DisablePathMTUDiscovery,
+		InitialPacketSize:              config.QUICConfig.InitialPacketSize,
 		EnableDatagrams:                true,
 		MaxDatagramFrameSize:           protocol.MaxDatagramFrameSize,
 		DisablePathManager:             true,
