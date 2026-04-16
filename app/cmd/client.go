@@ -356,6 +356,9 @@ func (c *clientConfig) fillTLSConfig(hyConfig *client.Config) error {
 }
 
 func (c *clientConfig) fillQUICConfig(hyConfig *client.Config) error {
+	if c.QUIC.InitialPacketSize != 0 && c.QUIC.InitialPacketSize < 1200 {
+		return configError{Field: "quic.initialPacketSize", Err: errors.New("must be at least 1200")}
+	}
 	hyConfig.QUICConfig = client.QUICConfig{
 		InitialStreamReceiveWindow:     c.QUIC.InitStreamReceiveWindow,
 		MaxStreamReceiveWindow:         c.QUIC.MaxStreamReceiveWindow,

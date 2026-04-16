@@ -571,6 +571,9 @@ func genZeroSSLEAB(email string) (*acme.EAB, error) {
 }
 
 func (c *serverConfig) fillQUICConfig(hyConfig *server.Config) error {
+	if c.QUIC.InitialPacketSize != 0 && c.QUIC.InitialPacketSize < 1200 {
+		return configError{Field: "quic.initialPacketSize", Err: errors.New("must be at least 1200")}
+	}
 	hyConfig.QUICConfig = server.QUICConfig{
 		InitialStreamReceiveWindow:     c.QUIC.InitStreamReceiveWindow,
 		MaxStreamReceiveWindow:         c.QUIC.MaxStreamReceiveWindow,
