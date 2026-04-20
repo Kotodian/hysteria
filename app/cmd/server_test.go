@@ -1,12 +1,15 @@
 package cmd
 
 import (
+	"io"
 	"testing"
 	"time"
 
 	"github.com/apernet/hysteria/core/v2/server"
+	"github.com/apernet/hysteria/extras/v2/disconnect"
 	eUtils "github.com/apernet/hysteria/extras/v2/utils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/spf13/viper"
 )
@@ -96,6 +99,13 @@ func TestServerConfig(t *testing.T) {
 				Insecure: true,
 			},
 			Command: "/etc/some_command",
+		},
+		Disconnect: serverConfigDisconnect{
+			Type: "http",
+			HTTP: serverConfigDisconnectHTTP{
+				URL:      "https://ops.example.com/hysteria/disconnect",
+				Insecure: true,
+			},
 		},
 		Resolver: serverConfigResolver{
 			Type: "udp",
@@ -194,6 +204,52 @@ func TestServerConfig(t *testing.T) {
 			ListenHTTPS: ":443",
 			ForceHTTPS:  true,
 		},
+	})
+}
+
+func TestServerFillDisconnectLogger(t *testing.T) {
+	t.Run("empty type keeps logger disabled", func(t *testing.T) {
+		hyConfig := &server.Config{}
+		err := (&serverConfig{}).fillDisconnectLogger(hyConfig)
+		assert.NoError(t, err)
+		assert.Nil(t, hyConfig.DisconnectLogger)
+	})
+
+	t.Run("http type creates logger", func(t *testing.T) {
+		hyConfig := &server.Config{}
+		err := (&serverConfig{
+			Disconnect: serverConfigDisconnect{
+				Type: "http",
+				HTTP: serverConfigDisconnectHTTP{
+					URL:      "https://ops.example.com/hysteria/disconnect",
+					Insecure: true,
+				},
+			},
+		}).fillDisconnectLogger(hyConfig)
+		require.NoError(t, err)
+
+		_, ok := hyConfig.DisconnectLogger.(*disconnect.HTTPDisconnectLogger)
+		assert.True(t, ok)
+
+		if closer, ok := hyConfig.DisconnectLogger.(io.Closer); ok {
+			t.Cleanup(func() {
+				assert.NoError(t, closer.Close())
+			})
+		}
+	})
+
+	t.Run("http type requires url", func(t *testing.T) {
+		err := (&serverConfig{
+			Disconnect: serverConfigDisconnect{Type: "http"},
+		}).fillDisconnectLogger(&server.Config{})
+		assert.EqualError(t, err, "invalid config: disconnect.http.url: empty disconnect http url")
+	})
+
+	t.Run("rejects unsupported type", func(t *testing.T) {
+		err := (&serverConfig{
+			Disconnect: serverConfigDisconnect{Type: "kafka"},
+		}).fillDisconnectLogger(&server.Config{})
+		assert.EqualError(t, err, "invalid config: disconnect.type: unsupported type")
 	})
 }
 

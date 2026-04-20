@@ -71,6 +71,12 @@ auth:
     insecure: true
   command: /etc/some_command
 
+disconnect:
+  type: http
+  http:
+    url: https://ops.example.com/hysteria/disconnect
+    insecure: true
+
 resolver:
   type: udp
   tcp:

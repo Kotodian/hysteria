@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"io"
 	"math/rand"
 	"net/http"
 	"sync"
@@ -67,17 +68,23 @@ func NewServer(config *Config) (Server, error) {
 		if config.Cleanup != nil {
 			err = errors.Join(err, config.Cleanup.Close())
 		}
+		err = errors.Join(err, closeDisconnectLogger(config.DisconnectLogger))
 		return nil, err
 	}
 	return &serverImpl{
 		config:   config,
 		listener: listener,
+		clients:  make(map[*quic.Conn]struct{}),
 	}, nil
 }
 
 type serverImpl struct {
-	config   *Config
-	listener *quic.Listener
+	config      *Config
+	listener    *quic.Listener
+	clientMutex sync.Mutex
+	clientWG    sync.WaitGroup
+	clients     map[*quic.Conn]struct{}
+	closing     bool
 }
 
 func (s *serverImpl) Serve() error {
@@ -86,19 +93,41 @@ func (s *serverImpl) Serve() error {
 		if err != nil {
 			return err
 		}
-		go s.handleClient(conn)
+		if !s.trackClient(conn) {
+			_ = conn.CloseWithError(closeErrCodeOK, "")
+			continue
+		}
+		go func(conn *quic.Conn) {
+			defer s.untrackClient(conn)
+			s.handleClient(conn)
+		}(conn)
 	}
 }
 
 func (s *serverImpl) Close() error {
+	s.clientMutex.Lock()
+	s.closing = true
+	clients := make([]*quic.Conn, 0, len(s.clients))
+	for conn := range s.clients {
+		clients = append(clients, conn)
+	}
+	s.clientMutex.Unlock()
+
+	for _, conn := range clients {
+		_ = conn.CloseWithError(closeErrCodeOK, "")
+	}
+
 	err := errors.Join(s.listener.Close(), s.config.Conn.Close())
 	if s.config.Cleanup != nil {
 		err = errors.Join(err, s.config.Cleanup.Close())
 	}
+	s.clientWG.Wait()
+	err = errors.Join(err, closeDisconnectLogger(s.config.DisconnectLogger))
 	return err
 }
 
 func (s *serverImpl) handleClient(conn *quic.Conn) {
+	connectTime := time.Now()
 	handler := newH3sHandler(s.config, conn)
 	h3s := http3.Server{
 		Handler:          handler,
@@ -113,8 +142,38 @@ func (s *serverImpl) handleClient(conn *quic.Conn) {
 		if el := s.config.EventLogger; el != nil {
 			el.Disconnect(conn.RemoteAddr(), handler.authID, err)
 		}
+		if dl := s.config.DisconnectLogger; dl != nil {
+			dl.LogDisconnect(handler.authID, conn.RemoteAddr(), time.Since(connectTime), err)
+		}
 	}
 	_ = conn.CloseWithError(closeErrCodeOK, "")
+}
+
+func closeDisconnectLogger(logger DisconnectLogger) error {
+	closer, ok := logger.(io.Closer)
+	if !ok || closer == nil {
+		return nil
+	}
+	return closer.Close()
+}
+
+func (s *serverImpl) trackClient(conn *quic.Conn) bool {
+	s.clientMutex.Lock()
+	defer s.clientMutex.Unlock()
+
+	if s.closing {
+		return false
+	}
+	s.clients[conn] = struct{}{}
+	s.clientWG.Add(1)
+	return true
+}
+
+func (s *serverImpl) untrackClient(conn *quic.Conn) {
+	s.clientMutex.Lock()
+	delete(s.clients, conn)
+	s.clientMutex.Unlock()
+	s.clientWG.Done()
 }
 
 type h3sHandler struct {

@@ -38,6 +38,7 @@ type Config struct {
 	UDPIdleTimeout        time.Duration
 	Authenticator         Authenticator
 	EventLogger           EventLogger
+	DisconnectLogger      DisconnectLogger
 	TrafficLogger         TrafficLogger
 	MasqHandler           http.Handler
 }
@@ -224,6 +225,10 @@ type EventLogger interface {
 	TCPError(addr net.Addr, id, reqAddr string, err error)
 	UDPRequest(addr net.Addr, id string, sessionID uint32, reqAddr string)
 	UDPError(addr net.Addr, id string, sessionID uint32, err error)
+}
+
+type DisconnectLogger interface {
+	LogDisconnect(id string, addr net.Addr, duration time.Duration, err error)
 }
 
 type HyStream interface {

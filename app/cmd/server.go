@@ -36,6 +36,7 @@ import (
 	"github.com/apernet/hysteria/core/v2/server"
 	"github.com/apernet/hysteria/extras/v2/auth"
 	"github.com/apernet/hysteria/extras/v2/correctnet"
+	"github.com/apernet/hysteria/extras/v2/disconnect"
 	"github.com/apernet/hysteria/extras/v2/masq"
 	"github.com/apernet/hysteria/extras/v2/obfs"
 	"github.com/apernet/hysteria/extras/v2/outbounds"
@@ -71,6 +72,7 @@ type serverConfig struct {
 	DisableUDP            bool                        `mapstructure:"disableUDP"`
 	UDPIdleTimeout        time.Duration               `mapstructure:"udpIdleTimeout"`
 	Auth                  serverConfigAuth            `mapstructure:"auth"`
+	Disconnect            serverConfigDisconnect      `mapstructure:"disconnect"`
 	Resolver              serverConfigResolver        `mapstructure:"resolver"`
 	Sniff                 serverConfigSniff           `mapstructure:"sniff"`
 	ACL                   serverConfigACL             `mapstructure:"acl"`
@@ -162,6 +164,16 @@ type serverConfigAuth struct {
 	UserPass map[string]string    `mapstructure:"userpass"`
 	HTTP     serverConfigAuthHTTP `mapstructure:"http"`
 	Command  string               `mapstructure:"command"`
+}
+
+type serverConfigDisconnectHTTP struct {
+	URL      string `mapstructure:"url"`
+	Insecure bool   `mapstructure:"insecure"`
+}
+
+type serverConfigDisconnect struct {
+	Type string                     `mapstructure:"type"`
+	HTTP serverConfigDisconnectHTTP `mapstructure:"http"`
 }
 
 type serverConfigResolverTCP struct {
@@ -872,6 +884,25 @@ func (c *serverConfig) fillTrafficLogger(hyConfig *server.Config) error {
 	return nil
 }
 
+func (c *serverConfig) fillDisconnectLogger(hyConfig *server.Config) error {
+	switch strings.ToLower(c.Disconnect.Type) {
+	case "":
+		return nil
+	case "http":
+		if c.Disconnect.HTTP.URL == "" {
+			return configError{Field: "disconnect.http.url", Err: errors.New("empty disconnect http url")}
+		}
+		hyConfig.DisconnectLogger = disconnect.NewHTTPDisconnectLogger(
+			c.Disconnect.HTTP.URL,
+			c.Disconnect.HTTP.Insecure,
+			logger,
+		)
+		return nil
+	default:
+		return configError{Field: "disconnect.type", Err: errors.New("unsupported type")}
+	}
+}
+
 // fillMasqHandler must be called after fillConn, as we may need to extract the QUIC
 // port number from Conn for MasqTCPServer.
 func (c *serverConfig) fillMasqHandler(hyConfig *server.Config) error {
@@ -995,6 +1026,7 @@ func (c *serverConfig) Config() (*server.Config, error) {
 		c.fillAuthenticator,
 		c.fillEventLogger,
 		c.fillTrafficLogger,
+		c.fillDisconnectLogger,
 		c.fillMasqHandler,
 	}
 	for _, f := range fillers {

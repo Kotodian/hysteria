@@ -13,6 +13,7 @@ require (
 	github.com/refraction-networking/utls v1.6.6
 	github.com/stretchr/testify v1.11.1
 	github.com/txthinking/socks5 v0.0.0-20230325130024-4230056ae301
+	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.47.0
 	golang.org/x/net v0.49.0
 	google.golang.org/protobuf v1.34.1
@@ -29,6 +30,8 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/txthinking/runnergroup v0.0.0-20210608031112-152c7c4432bf // indirect
+	go.uber.org/atomic v1.11.0 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/mod v0.32.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
