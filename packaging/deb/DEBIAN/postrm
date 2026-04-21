@@ -12,6 +12,7 @@ case "$1" in
         rm -rf /var/lib/hysteria
         rm -f /etc/hysteria/config.yaml.example
         rmdir /etc/hysteria 2>/dev/null || true
+        rm -f /etc/sysctl.d/99-hysteria.conf
         ;;
     remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
         if [ -d /run/systemd/system ]; then

@@ -20,6 +20,10 @@ case "$1" in
         if [ -d /run/systemd/system ]; then
             systemctl daemon-reload || true
         fi
+
+        if [ -x /sbin/sysctl ] || command -v sysctl >/dev/null 2>&1; then
+            sysctl --system >/dev/null 2>&1 || true
+        fi
         ;;
 esac
 

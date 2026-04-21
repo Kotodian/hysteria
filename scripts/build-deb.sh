@@ -35,6 +35,7 @@ install -d -m 0755 "$STAGE/DEBIAN"
 install -d -m 0755 "$STAGE/usr/bin"
 install -d -m 0755 "$STAGE/lib/systemd/system"
 install -d -m 0755 "$STAGE/etc/hysteria"
+install -d -m 0755 "$STAGE/etc/sysctl.d"
 
 install -m 0755 "$BIN" "$STAGE/usr/bin/hysteria"
 
@@ -46,6 +47,7 @@ install -m 0755 "$TEMPLATE/DEBIAN/postrm"   "$STAGE/DEBIAN/postrm"
 install -m 0644 "$TEMPLATE/lib/systemd/system/hysteria-server.service"  "$STAGE/lib/systemd/system/"
 install -m 0644 "$TEMPLATE/lib/systemd/system/hysteria-server@.service" "$STAGE/lib/systemd/system/"
 install -m 0644 "$TEMPLATE/etc/hysteria/config.yaml.example"            "$STAGE/etc/hysteria/"
+install -m 0644 "$TEMPLATE/etc/sysctl.d/99-hysteria.conf"               "$STAGE/etc/sysctl.d/"
 
 OUT="$REPO_ROOT/build/hysteria_${VERSION}_amd64.deb"
 dpkg-deb --root-owner-group --build "$STAGE" "$OUT"
