@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/apernet/quic-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -50,6 +51,7 @@ func TestHTTPDisconnectLogger_POSTPayload(t *testing.T) {
 		Addr       string `json:"addr"`
 		DurationMS int64  `json:"duration_ms"`
 		Reason     string `json:"reason"`
+		Category   string `json:"category"`
 	}
 
 	payloadCh := make(chan payload, 1)
@@ -84,6 +86,46 @@ func TestHTTPDisconnectLogger_POSTPayload(t *testing.T) {
 		assert.Equal(t, "1.2.3.4:5678", got.Addr)
 		assert.EqualValues(t, 12345, got.DurationMS)
 		assert.Equal(t, "remote reset", got.Reason)
+		assert.Equal(t, categoryUnknown, got.Category)
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for disconnect payload")
+	}
+}
+
+func TestHTTPDisconnectLogger_ClassifiesClientClose(t *testing.T) {
+	type payload struct {
+		Reason   string `json:"reason"`
+		Category string `json:"category"`
+	}
+
+	payloadCh := make(chan payload, 1)
+	client := &http.Client{
+		Transport: roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+			defer r.Body.Close()
+
+			var got payload
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&got))
+			payloadCh <- got
+			return httpResponse(http.StatusOK), nil
+		}),
+	}
+
+	logger := newHTTPDisconnectLogger("http://disconnect.example", false, zap.NewNop(), httpDisconnectLoggerOptions{
+		client: client,
+	})
+	t.Cleanup(func() {
+		require.NoError(t, logger.Close())
+	})
+
+	logger.LogDisconnect("user-2", &net.TCPAddr{
+		IP:   net.IPv4(10, 0, 0, 1),
+		Port: 4000,
+	}, time.Second, &quic.ApplicationError{Remote: true, ErrorCode: 0})
+
+	select {
+	case got := <-payloadCh:
+		assert.Equal(t, categoryClientClose, got.Category)
+		assert.NotEmpty(t, got.Reason)
 	case <-time.After(2 * time.Second):
 		t.Fatal("timed out waiting for disconnect payload")
 	}

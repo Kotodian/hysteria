@@ -43,6 +43,7 @@ type disconnectEvent struct {
 	Addr       string `json:"addr"`
 	DurationMS int64  `json:"duration_ms"`
 	Reason     string `json:"reason"`
+	Category   string `json:"category"`
 }
 
 type httpDisconnectLoggerOptions struct {
@@ -156,6 +157,7 @@ func (l *HTTPDisconnectLogger) LogDisconnect(id string, addr net.Addr, duration 
 		Addr:       addr.String(),
 		DurationMS: duration.Milliseconds(),
 		Reason:     disconnectReason(err),
+		Category:   classifyDisconnect(err),
 	})
 }
 
