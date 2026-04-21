@@ -1,0 +1,12 @@
+Package: hysteria
+Version: __VERSION__
+Section: net
+Priority: optional
+Architecture: amd64
+Maintainer: Kotodian fork <noreply@github.com>
+Homepage: https://github.com/Kotodian/hysteria
+Description: Hysteria 2 QUIC-based TCP & UDP proxy (Kotodian fork)
+ Hysteria is a powerful, lightning fast and censorship resistant proxy.
+ This package ships the hysteria binary and a systemd unit for running
+ the server. Kotodian fork adds configurable initialPacketSize and a
+ disconnect webhook logger on top of upstream apernet/hysteria.

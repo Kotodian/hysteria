@@ -1,0 +1,22 @@
+# Hysteria 2 server config example.
+# Copy this file to /etc/hysteria/config.yaml, customize, then:
+#     sudo systemctl enable --now hysteria-server.service
+#
+# Full documentation: https://v2.hysteria.network/
+
+# listen: :443
+
+acme:
+  domains:
+    - your.domain.net
+  email: your@email.com
+
+auth:
+  type: password
+  password: CHANGE_ME
+
+masquerade:
+  type: proxy
+  proxy:
+    url: https://news.ycombinator.com/
+    rewriteHost: true
