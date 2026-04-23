@@ -58,6 +58,7 @@ type clientImpl struct {
 	config *Config
 
 	pktConn net.PacketConn
+	tr      *quic.Transport
 	conn    *quic.Conn
 
 	udpSM *udpSessionManager
@@ -89,13 +90,14 @@ func (c *clientImpl) connect() (*HandshakeInfo, error) {
 		MaxDatagramFrameSize:           protocol.MaxDatagramFrameSize,
 		DisablePathManager:             true,
 	}
+	tr := &quic.Transport{Conn: pktConn}
 	// Prepare RoundTripper
 	var conn *quic.Conn
 	rt := &http3.Transport{
 		TLSClientConfig: tlsConfig,
 		QUICConfig:      quicConfig,
 		Dial: func(ctx context.Context, _ string, tlsCfg *tls.Config, cfg *quic.Config) (*quic.Conn, error) {
-			qc, err := quic.DialEarly(ctx, pktConn, c.config.ServerAddr, tlsCfg, cfg)
+			qc, err := tr.DialEarly(ctx, c.config.ServerAddr, tlsCfg, cfg)
 			if err != nil {
 				return nil, err
 			}
@@ -122,11 +124,13 @@ func (c *clientImpl) connect() (*HandshakeInfo, error) {
 		if conn != nil {
 			_ = conn.CloseWithError(closeErrCodeProtocolError, "")
 		}
+		_ = tr.Close()
 		_ = pktConn.Close()
 		return nil, coreErrs.ConnectError{Err: err}
 	}
 	if resp.StatusCode != protocol.StatusAuthOK {
 		_ = conn.CloseWithError(closeErrCodeProtocolError, "")
+		_ = tr.Close()
 		_ = pktConn.Close()
 		return nil, coreErrs.AuthError{StatusCode: resp.StatusCode}
 	}
@@ -154,6 +158,7 @@ func (c *clientImpl) connect() (*HandshakeInfo, error) {
 	_ = resp.Body.Close()
 
 	c.pktConn = pktConn
+	c.tr = tr
 	c.conn = conn
 	if authResp.UDPEnabled {
 		c.udpSM = newUDPSessionManager(&udpIOImpl{Conn: conn})
@@ -222,6 +227,7 @@ func (c *clientImpl) UDP() (HyUDPConn, error) {
 
 func (c *clientImpl) Close() error {
 	_ = c.conn.CloseWithError(closeErrCodeOK, "")
+	_ = c.tr.Close()
 	_ = c.pktConn.Close()
 	return nil
 }

@@ -62,9 +62,10 @@ func NewServer(config *Config) (Server, error) {
 		MaxDatagramFrameSize:           protocol.MaxDatagramFrameSize,
 		DisablePathManager:             true,
 	}
-	listener, err := quic.Listen(config.Conn, tlsConfig, quicConfig)
+	tr := &quic.Transport{Conn: config.Conn}
+	listener, err := tr.Listen(tlsConfig, quicConfig)
 	if err != nil {
-		err = errors.Join(err, config.Conn.Close())
+		err = errors.Join(err, tr.Close(), config.Conn.Close())
 		if config.Cleanup != nil {
 			err = errors.Join(err, config.Cleanup.Close())
 		}
@@ -73,6 +74,7 @@ func NewServer(config *Config) (Server, error) {
 	}
 	return &serverImpl{
 		config:   config,
+		tr:       tr,
 		listener: listener,
 		clients:  make(map[*quic.Conn]struct{}),
 	}, nil
@@ -80,6 +82,7 @@ func NewServer(config *Config) (Server, error) {
 
 type serverImpl struct {
 	config      *Config
+	tr          *quic.Transport
 	listener    *quic.Listener
 	clientMutex sync.Mutex
 	clientWG    sync.WaitGroup
@@ -117,7 +120,7 @@ func (s *serverImpl) Close() error {
 		_ = conn.CloseWithError(closeErrCodeOK, "")
 	}
 
-	err := errors.Join(s.listener.Close(), s.config.Conn.Close())
+	err := errors.Join(s.listener.Close(), s.tr.Close(), s.config.Conn.Close())
 	if s.config.Cleanup != nil {
 		err = errors.Join(err, s.config.Cleanup.Close())
 	}
